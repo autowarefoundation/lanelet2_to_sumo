@@ -37,6 +37,7 @@ from ll2sumo.signal_mapping import (
     _signal_mapping_record_sort_key,
     _write_signal_id_mapping_json,
 )
+from ll2sumo.sumo_binary import resolve_tool
 from ll2sumo.sumo_xml import (
     id_sort_key as _sort_key,
     shape_string as _shape_string,
@@ -2174,12 +2175,14 @@ def convert_map(
     lane_change_mode: str = "lanelet-infer",
     signal_mode: str = "jp-static",
     run_netconvert: bool = True,
-    netconvert_binary: str = "netconvert",
+    netconvert_binary: str | None = None,
 ) -> dict[str, object]:
     if lane_change_mode not in {"lanelet-infer", "unrestricted"}:
         raise ValueError(f"Unsupported lane change mode: {lane_change_mode}")
     if signal_mode not in {"none", "jp-static"}:
         raise ValueError(f"Unsupported signal mode: {signal_mode}")
+
+    netconvert_binary = resolve_tool("netconvert", netconvert_binary)
 
     input_path = Path(input_path)
     out_dir = Path(out_dir)
@@ -2635,8 +2638,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--netconvert-binary",
-        default="netconvert",
-        help="Path to the netconvert executable.",
+        default=None,
+        help=(
+            "Path to the netconvert executable. Defaults to netconvert on PATH, "
+            "then to SUMO_HOME, then to the installed eclipse-sumo wheel."
+        ),
     )
     args = parser.parse_args()
 
