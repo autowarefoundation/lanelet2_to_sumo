@@ -8,6 +8,9 @@ import xml.etree.ElementTree as ET
 from collections import Counter, defaultdict
 from dataclasses import dataclass
 from pathlib import Path
+from shutil import which
+
+from sumolib import checkBinary
 
 from ll2sumo.georeference import patch_net_location
 from ll2sumo.geometry import (
@@ -37,7 +40,6 @@ from ll2sumo.signal_mapping import (
     _signal_mapping_record_sort_key,
     _write_signal_id_mapping_json,
 )
-from ll2sumo.sumo_binary import resolve_tool
 from ll2sumo.sumo_xml import (
     id_sort_key as _sort_key,
     shape_string as _shape_string,
@@ -2102,6 +2104,19 @@ def _plan_vehicle_signals(
     )
 
 
+def _resolve_netconvert_binary(explicit: str | None) -> str:
+    """Return the netconvert to run, deferring to SUMO's own binary lookup.
+
+    `sumolib.checkBinary` honours NETCONVERT_BINARY and SUMO_HOME, and falls
+    back to the binary shipped with an installed eclipse-sumo wheel. Its last
+    resort is the bare name, which is resolved here so that the binary that
+    actually ran is recorded in the conversion report.
+    """
+
+    binary = explicit or checkBinary("netconvert")
+    return which(binary) or binary
+
+
 def _run_netconvert(
     nodes_path: Path,
     edges_path: Path,
@@ -2182,7 +2197,7 @@ def convert_map(
     if signal_mode not in {"none", "jp-static"}:
         raise ValueError(f"Unsupported signal mode: {signal_mode}")
 
-    netconvert_binary = resolve_tool("netconvert", netconvert_binary)
+    netconvert_binary = _resolve_netconvert_binary(netconvert_binary)
 
     input_path = Path(input_path)
     out_dir = Path(out_dir)
@@ -2640,8 +2655,8 @@ def main() -> None:
         "--netconvert-binary",
         default=None,
         help=(
-            "Path to the netconvert executable. Defaults to netconvert on PATH, "
-            "then to SUMO_HOME, then to the installed eclipse-sumo wheel."
+            "Path to the netconvert executable. Defaults to the SUMO lookup: "
+            "NETCONVERT_BINARY, then SUMO_HOME, then the installed eclipse-sumo wheel, then PATH."
         ),
     )
     args = parser.parse_args()

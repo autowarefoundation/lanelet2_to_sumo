@@ -8,10 +8,11 @@ version = "0.1.0"
 description = "Convert Lanelet2 OSM maps into SUMO networks."
 readme = "README.md"
 requires-python = ">=3.10"
-# The converter itself is standard library only. SUMO is a runtime dependency
-# because netconvert is executed as a subprocess; install the `sumo` extra to
-# get it from PyPI instead of from a host installation or a Docker image.
-dependencies = []
+# sumolib is SUMO's own pure Python helper library, used to locate the
+# netconvert binary. SUMO itself is a runtime dependency because netconvert is
+# executed as a subprocess; install the `sumo` extra to get it from PyPI
+# instead of from a host installation or a Docker image.
+dependencies = ["sumolib>=1.26.0"]
 
 [project.optional-dependencies]
 # Pinned to the SUMO version the converter is validated against.

@@ -16,7 +16,9 @@ The converter is designed for vehicle road networks. It exports SUMO plain XML f
 
 ## Installation
 
-The converter itself is standard library only Python. Its one real dependency is SUMO, because `netconvert` is executed as a subprocess. The `sumo` extra installs the official `eclipse-sumo` wheel, which ships the SUMO binaries (`netconvert`, `sumo`, `sumo-gui`, ...) and the SUMO `tools/` directory:
+The converter is Python plus SUMO. Its only Python dependency is `sumolib`, SUMO's own pure Python helper library, which is used to locate the `netconvert` binary. SUMO itself is a runtime dependency because `netconvert` is executed as a subprocess.
+
+The `sumo` extra installs the official `eclipse-sumo` wheel, which ships the SUMO binaries (`netconvert`, `sumo`, `sumo-gui`, ...) and the SUMO `tools/` directory:
 
 ```bash
 python3 -m venv .venv
@@ -55,28 +57,20 @@ There is no macOS x86_64 wheel, and no musl wheel. Use a host SUMO installation 
 
 ### How netconvert Is Located
 
-`netconvert` is resolved in this order:
+Binary lookup is delegated to `sumolib.checkBinary`, so it follows the usual SUMO conventions. In order:
 
 1. the path given to `--netconvert-binary`,
-2. `netconvert` on `PATH`,
-3. `SUMO_HOME/bin`, if `SUMO_HOME` is exported,
-4. the `eclipse-sumo` wheel installed in the current interpreter.
+2. the `NETCONVERT_BINARY` environment variable,
+3. `SUMO_HOME/bin`,
+4. the `eclipse-sumo` wheel installed in the current interpreter,
+5. `PATH`.
 
-So an activated virtualenv, an exported `SUMO_HOME`, and a system-wide SUMO installation all work without extra configuration. The resolved paths are also recorded in `conversion.report.json` under `netconvert.binary`.
+So an activated virtualenv, an exported `SUMO_HOME`, and a system-wide SUMO installation all work without extra configuration. The binary that actually ran is recorded in `conversion.report.json` under `netconvert.binary`.
 
 To check what a given environment resolves to:
 
 ```bash
-python3 -m ll2sumo.sumo_binary
-```
-
-```json
-{
-  "netconvert": ".../site-packages/sumo/bin/netconvert",
-  "random_trips": ".../site-packages/sumo/tools/randomTrips.py",
-  "sumo": ".../site-packages/sumo/bin/sumo",
-  "sumo_home": ".../site-packages/sumo"
-}
+python3 -c "import sumolib; print(sumolib.checkBinary('netconvert'))"
 ```
 
 ## Recommended Workflow
@@ -271,6 +265,7 @@ Main options:
 
 - `--netconvert-binary /path/to/netconvert`
   - Uses a specific `netconvert` executable instead of the resolved one.
+  - `NETCONVERT_BINARY` does the same thing through the environment.
 
 ## Reports
 
@@ -390,7 +385,7 @@ Run unit tests:
 python3 -m unittest discover -s tests -v
 ```
 
-The unit tests do not invoke `netconvert`, so they run without a SUMO installation.
+The unit tests do not invoke `netconvert`, so they run without a SUMO installation. They do need `sumolib`, which `pip install -e .` provides.
 
 ## Current Limitations
 
