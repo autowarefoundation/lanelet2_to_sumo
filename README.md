@@ -6,6 +6,7 @@ The converter is designed for vehicle road networks. It exports SUMO plain XML f
 
 ## What It Does
 
+- Projects Lanelet2 geo coordinates to UTM with PROJ, and infers the local coordinate offset of MGRS-style maps.
 - Converts `road` lanelets into SUMO edges and lanes.
 - Infers predecessor / successor topology from shared Lanelet2 boundary nodes.
 - Handles `intersection_area` lanelets as intersection clusters.
@@ -16,7 +17,12 @@ The converter is designed for vehicle road networks. It exports SUMO plain XML f
 
 ## Installation
 
-The converter is Python plus SUMO. Its only Python dependency is `sumolib`, SUMO's own pure Python helper library, which is used to locate the `netconvert` binary. SUMO itself is a runtime dependency because `netconvert` is executed as a subprocess.
+The converter is Python plus SUMO. It has two Python dependencies:
+
+- `pyproj`, which carries PROJ and performs the WGS84 to UTM projection of Lanelet2 geo coordinates,
+- `sumolib`, SUMO's own pure Python helper library, used to locate the `netconvert` binary.
+
+SUMO itself is a runtime dependency because `netconvert` is executed as a subprocess.
 
 The `sumo` extra installs the official `eclipse-sumo` wheel, which ships the SUMO binaries (`netconvert`, `sumo`, `sumo-gui`, ...) and the SUMO `tools/` directory:
 
@@ -317,6 +323,8 @@ Build the image:
 docker build --platform linux/amd64 -t ll2sumo:latest .
 ```
 
+The image installs the converter with `pip`, so it carries the same Python dependencies as a local install, and takes `netconvert` and the SUMO tools from the base image.
+
 The Docker image is based on:
 
 ```text
@@ -424,7 +432,7 @@ Run unit tests:
 python3 -m unittest discover -s tests -v
 ```
 
-The unit tests do not invoke `netconvert`, so they run without a SUMO installation. They do need `sumolib`, which `pip install -e .` provides.
+The unit tests do not invoke `netconvert`, so they run without a SUMO installation. They do need `pyproj` and `sumolib`, which `pip install -e .` provides.
 
 ## Current Limitations
 
