@@ -38,7 +38,7 @@ If you already have SUMO installed on the host, install without the extra:
 pip install -e .
 ```
 
-Docker is also still available, and remains the fallback on platforms that have no SUMO wheel. See [Docker](#docker-optional).
+Docker remains fully supported as an alternative to both, and does not require a host Python environment at all. See [Docker](#docker).
 
 ### Platform Notes
 
@@ -114,7 +114,11 @@ cp /path/to/input.osm map/input.osm
 
 Generated files are written under `out/`.
 
+Both directories are mounted into the container by the Docker workflow; see [Input Map Placement For Docker](#input-map-placement-for-docker).
+
 ## Convert
+
+This section uses a local Python environment. For the Docker equivalent, see [Convert With Docker](#convert-with-docker).
 
 Recommended conversion:
 
@@ -181,6 +185,8 @@ Use the generated safe weights when running `randomTrips.py`.
 
 The safe weights set source / destination / via weights to zero for disconnected or dead-end edges that should not be used for random route generation.
 
+For the Docker equivalent, see [randomTrips Validation With Docker](#randomtrips-validation-with-docker).
+
 `randomTrips.py` lives in the SUMO tools directory. With the `sumo` extra installed, resolve it from the wheel:
 
 ```bash
@@ -210,6 +216,8 @@ python3 "$SUMO_HOME/tools/randomTrips.py" \
 ```
 
 ## Run SUMO
+
+For the Docker equivalent, see [Run SUMO With Docker](#run-sumo-with-docker).
 
 Headless SUMO:
 
@@ -291,13 +299,17 @@ connection_shape_summary.unshaped_connection_count
 connectivity_summary
 ```
 
-## Docker (Optional)
+## Docker
 
-Docker is no longer required, because `pip install ".[sumo]"` already provides `netconvert` and the rest of SUMO. It is still useful when:
+The Python setup above is the default path. Docker remains fully supported, and is the way to run the converter without depending on a host Python environment or a host SUMO installation.
+
+Use it when:
 
 - the host platform has no `eclipse-sumo` wheel (macOS x86_64, musl-based Linux),
-- you want the exact OS-level SUMO build used for validation, rather than the wheel build,
-- you want to run the converter without installing Python packages on the host.
+- you want the exact OS-level SUMO build used for converter validation, rather than the wheel build,
+- you want one pinned image for CI or for sharing a reproducible environment.
+
+### Docker Setup
 
 Build the image:
 
@@ -311,16 +323,33 @@ The Docker image is based on:
 ghcr.io/eclipse-sumo/sumo:v1_26_0
 ```
 
-The official SUMO `v1_26_0` image is `linux/amd64`. On Apple Silicon or other arm64 hosts, Docker runs it through emulation, so conversion is slower than the native `eclipse-sumo` arm64 wheel.
-
-The container mounts `map/` read-only at `/data/input` and writes to `/data/out`:
+This matches the SUMO version used for converter validation:
 
 ```text
-host:      ./map/input.osm            ./out/example-network/
-container: /data/input/input.osm      /data/out/example-network/
+SUMO netconvert 1.26.0
 ```
 
-Convert:
+The official SUMO `v1_26_0` image is `linux/amd64`. On Apple Silicon or other arm64 hosts, Docker runs it through emulation, so conversion is slower than native execution, including the native arm64 `eclipse-sumo` wheel.
+
+### Input Map Placement For Docker
+
+The Docker command mounts `map/` read-only at `/data/input`:
+
+```text
+host:      ./map/input.osm
+container: /data/input/input.osm
+```
+
+Generated files are written under `out/`, mounted in the container as `/data/out`:
+
+```text
+host output:      ./out/example-network/
+container output: /data/out/example-network/
+```
+
+### Convert With Docker
+
+Recommended conversion:
 
 ```bash
 mkdir -p out/example-network
@@ -335,7 +364,9 @@ docker run --rm \
   --lane-change-mode unrestricted
 ```
 
-randomTrips validation:
+The generated files and reports are the same as for the local Python workflow; see [Convert](#convert) and [Reports](#reports).
+
+### randomTrips Validation With Docker
 
 ```bash
 docker run --rm \
@@ -352,7 +383,9 @@ docker run --rm \
   -r /data/out/example-network/test.rou.xml
 ```
 
-Headless SUMO:
+### Run SUMO With Docker
+
+Headless SUMO in Docker:
 
 ```bash
 docker run --rm \
@@ -369,7 +402,13 @@ docker run --rm \
   --fcd-output /data/out/example-network/test.fcd.xml
 ```
 
-Run `sumo-gui` on the host for visual inspection.
+Visual inspection on the host:
+
+```bash
+sumo-gui \
+  -n out/example-network/network.net.xml \
+  -r out/example-network/test.rou.xml
+```
 
 ## SUMO Build Differences
 
